@@ -56,15 +56,15 @@ import cmath
 #core_r = WL/20.0
 #epsilon_Ag = -2.71 + 0.25j
 
-WL=500 #nm
-core_r = 50.0
-epsilon_Ag = 4.0 
+WL=500 #nm 				# wave length
+core_r = 150.0			# partical radius
+epsilon_Ag = 4.0 		# dielectric permitivity
 
 
-index_Ag = np.sqrt(epsilon_Ag)
+index_Ag = np.sqrt(epsilon_Ag)	# refractive index
 # n1 = 1.53413
 # n2 = 0.565838 + 7.23262j
-nm = 1.0
+nm = 1.0						# refractive index of host media
 
 x = np.ones((2), dtype = np.float64)
 x[0] = 2.0*np.pi*core_r/WL/4.0*3.0
@@ -74,30 +74,30 @@ m = np.ones((2), dtype = np.complex128)
 m[0] = index_Ag/nm
 m[1] = index_Ag/nm
 
-print "x =", x
-print "m =", m
+print("x =", x)
+print("m =", m)
 
 comment='bulk-Ag-flow'
 WL_units='nm'
-npts = 151
-factor=2.1
-flow_total = 9
+npts = 151					# plot will be npts x npts
+factor=2.1					# area of plot
+flow_total = 9				# number of powerflow steamlines 
 #flow_total = 21
 #flow_total = 0
-#crossplane='XZ'
+crossplane='XZ'
 #crossplane='YZ'
-crossplane='XY'
+#crossplane='XY'
 
 # Options to plot: Eabs, Habs, Pabs, angleEx, angleHy
-field_to_plot='Eabs'
-#field_to_plot='angleEx'
+#field_to_plot='Eabs'
+field_to_plot='angleEx'
 
 
 import matplotlib.pyplot as plt
 fig, axs = plt.subplots(1,1)#, sharey=True, sharex=True)
 fig.tight_layout()
-fieldplot(fig, axs, x,m, WL, comment, WL_units, crossplane, field_to_plot, npts, factor, flow_total,
-          subplot_label=' ',is_flow_extend=False)
+fieldplot(fig, axs, x, m, WL, comment, WL_units, crossplane, field_to_plot, npts, factor, flow_total,
+          subplot_label=' ', is_flow_extend=False)
 
 #fieldplot(x,m, WL, comment, WL_units, crossplane, field_to_plot, npts, factor, flow_total, is_flow_extend=False)
 
@@ -107,8 +107,10 @@ fieldplot(fig, axs, x,m, WL, comment, WL_units, crossplane, field_to_plot, npts,
 
 fig.subplots_adjust(hspace=0.3, wspace=-0.1)
 
-plt.savefig(comment+"-R"+str(int(round(x[-1]*WL/2.0/np.pi)))+"-"+crossplane+"-"
-                    +field_to_plot+".pdf",pad_inches=0.02, bbox_inches='tight')
+savepath=comment+"-R"+str(int(round(x[-1]*WL/2.0/np.pi)))+"-"+crossplane+"-"+field_to_plot+".pdf"
+print("Saving to", savepath)
+plt.savefig(savepath,pad_inches=0.02, bbox_inches='tight')
+print("Saved")
 
 plt.draw()
 
