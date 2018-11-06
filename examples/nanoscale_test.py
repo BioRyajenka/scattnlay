@@ -8,8 +8,35 @@ from matplotlib.path import Path
 
 from fieldplot import GetFlow3D
 
-def evaluateOnSphere(xs):
-	x, y, z = xs[0], xs[1], xs[2]
+from math import sqrt
+import quadpy
+
+def evaluate(az, normalized_r, normalized_x):
+	def evaluate_on_sphere(xs):
+		vbx, vby, vbz = xs[0], xs[1], -xs[2]
+
+		bx = vbx / normalized_r * az
+		by = vby / normalized_r * az
+		bz = vbz / normalized_r * az
+
+		_, E, H = fieldnlay(np.array([normalized_x]), np.array([m]), np.array([bx, by, bz]).reshape(1, 3), pl=-1)
+
+		assert E.shape == (1, 1, 3)
+		vx, vy, vz = E[0][0]
+
+		px = by * vz - bz * vy
+		py = - bx * vz + bz * vx
+		pz = bx * vy - by * vx
+
+		return sqrt((px * px + py * py + pz * pz) / (bx * bx + by * by + bz * bz))
+
+	val = quadpy.sphere.integrate(
+	    evaluate_on_sphere,
+	    [0.0, 0.0, 0.0], normalized_r,
+	    quadpy.sphere.Lebedev("19")
+	    )
+
+	return val
 
 def fieldplot2(flow_total, Eabs, coordX, coordZ, x, m, npts, factor):
 	field_to_plot='Eabs'
