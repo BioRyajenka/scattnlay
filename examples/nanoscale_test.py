@@ -8,21 +8,64 @@ from matplotlib.path import Path
 
 from fieldplot import GetFlow3D
 
-from math import sqrt
+from math import sqrt, cos, sin, acos
 import quadpy
 
-def evaluate(az, normalized_r, normalized_x):
-	def evaluate_on_sphere(xs):
-		vbx, vby, vbz = xs[0], xs[1], -xs[2]
+def _rotate(m, v):
+	return np.array(m).dot(np.array(v))
 
-		bx = vbx / normalized_r * az
-		by = vby / normalized_r * az
-		bz = vbz / normalized_r * az
+def rotateAroundX(v, angle):
+	return _rotate(
+		[[1, 0, 0],
+		[0, cos(angle), -sin(angle)],
+		[0, sin(angle), cos(angle)]], v)
 
-		_, E, H = fieldnlay(np.array([normalized_x]), np.array([m]), np.array([bx, by, bz]).reshape(1, 3), pl=-1)
+def rotateAroundY(v, angle):
+	return _rotate(
+		[[cos(angle), 0, sin(angle)],
+		[0, 1, 0],
+		[-sin(angle), 0, cos(angle)]], v)
+
+def rotateAroundZ(v, angle):
+	return _rotate(
+		[[cos(angle), -sin(angle), 0],
+		[sin(angle), cos(angle), 0],
+		[0, 0, 1]], v)
+
+def angle2D(ax, ay, bx, by):
+	return acos((ax * bx + ay * by) / sqrt(ax * ax + ay * ay) / sqrt(bx * bx + by * by))
+
+def directiveGain(ax, ay, az, normalized_r, normalized_x):
+	def evaluate_on_sphere(vr):
+		# TODO: divide by smth
+		if vr[0] != 0:
+			pol = np.array([vr[2] / vr[0]], 0, 1)
+		elif vr[2] != 0:
+			pol = np.array([vr[0] / vr[2]], 0, 1)
+		else:
+			pol = np.array([-1, 0, 0])
+		b = np.array([0, 0, 1])
+
+		angle = angle2D(vr[0], vr[2], 0, 1)
+		vr = rotateAroundY(vr, angle)
+		pol = rotateAroundY(pol, angle)
+		b = rotateAroundY(b, angle)
+
+		angle = angle2D(vr[1], vr[2], 0, 1)
+		vr = rotateAroundX(vr, angle)
+		pol = rotateAroundX(pol, angle)
+		b = rotateAroundX(b, angle)
+
+		angle = angle2D(pol[0], pol[1], 1, 0)
+		vr = rotateAroundZ(vr, angle)
+		pol = rotateAroundZ(pol, angle)
+		b = rotateAroundZ(b, angle)
+
+		_, E, H = fieldnlay(np.array([normalized_x]), np.array([m]), b, pl=-1)
 
 		assert E.shape == (1, 1, 3)
 		vx, vy, vz = E[0][0]
+		bx, by, bz = b
 
 		px = by * vz - bz * vy
 		py = - bx * vz + bz * vx
@@ -33,8 +76,7 @@ def evaluate(az, normalized_r, normalized_x):
 	val = quadpy.sphere.integrate(
 	    evaluate_on_sphere,
 	    [0.0, 0.0, 0.0], normalized_r,
-	    quadpy.sphere.Lebedev("19")
-	    )
+	    quadpy.sphere.Lebedev("19"))
 
 	return val
 
