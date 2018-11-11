@@ -38,14 +38,17 @@ def angle2D(ax, ay, bx, by):
 def directiveGain(ax, ay, az, normalized_r, normalized_x):
 	def evaluate_on_sphere(vr):
 		# TODO: divide by smth
+        
 		if vr[0] != 0:
-			pol = np.array([vr[2] / vr[0]], 0, 1)
+			pol = np.array([vr[2] / vr[0], 0, 1])
 		elif vr[2] != 0:
-			pol = np.array([vr[0] / vr[2]], 0, 1)
+			pol = np.array([vr[0] / vr[2], 0, 1])
 		else:
 			pol = np.array([-1, 0, 0])
 		b = np.array([0, 0, 1])
 
+		print "before", vr
+        
 		angle = angle2D(vr[0], vr[2], 0, 1)
 		vr = rotateAroundY(vr, angle)
 		pol = rotateAroundY(pol, angle)
@@ -60,8 +63,10 @@ def directiveGain(ax, ay, az, normalized_r, normalized_x):
 		vr = rotateAroundZ(vr, angle)
 		pol = rotateAroundZ(pol, angle)
 		b = rotateAroundZ(b, angle)
+        
+		print "after", vr
 
-		_, E, H = fieldnlay(np.array([normalized_x]), np.array([m]), b, pl=-1)
+		_, E, H = fieldnlay(np.array([normalized_x]), np.array([m]), b.reshape(1, 3), pl=-1)
 
 		assert E.shape == (1, 1, 3)
 		vx, vy, vz = E[0][0]
@@ -71,10 +76,12 @@ def directiveGain(ax, ay, az, normalized_r, normalized_x):
 		py = - bx * vz + bz * vx
 		pz = bx * vy - by * vx
 
+		#print px, py, pz, bx, by, bz
+		#print px * px + py * py + pz * pz, bx * bx + by * by + bz * bz
 		return sqrt((px * px + py * py + pz * pz) / (bx * bx + by * by + bz * bz))
 
 	val = quadpy.sphere.integrate(
-	    evaluate_on_sphere,
+	    lambda xs: np.apply_along_axis(evaluate_on_sphere, 0, xs),
 	    [0.0, 0.0, 0.0], normalized_r,
 	    quadpy.sphere.Lebedev("19"))
 
