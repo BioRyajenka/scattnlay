@@ -11,65 +11,83 @@ from fieldplot import GetFlow3D
 from math import sqrt, cos, sin, acos
 import quadpy
 
+EPS = 1e-8
+
 def _rotate(m, v):
 	return np.array(m).dot(np.array(v))
 
 def rotateAroundX(v, angle):
 	return _rotate(
 		[[1, 0, 0],
-		[0, cos(angle), -sin(angle)],
-		[0, sin(angle), cos(angle)]], v)
+		[0, cos(angle), sin(angle)],
+		[0, -sin(angle), cos(angle)]], v)
 
 def rotateAroundY(v, angle):
 	return _rotate(
-		[[cos(angle), 0, sin(angle)],
+		[[cos(angle), 0, -sin(angle)],
 		[0, 1, 0],
-		[-sin(angle), 0, cos(angle)]], v)
+		[sin(angle), 0, cos(angle)]], v)
 
 def rotateAroundZ(v, angle):
 	return _rotate(
-		[[cos(angle), -sin(angle), 0],
-		[sin(angle), cos(angle), 0],
+		[[cos(angle), sin(angle), 0],
+		[-sin(angle), cos(angle), 0],
 		[0, 0, 1]], v)
 
+# oriented angle from a to b
 def angle2D(ax, ay, bx, by):
-	return acos((ax * bx + ay * by) / sqrt(ax * ax + ay * ay) / sqrt(bx * bx + by * by))
+	a = np.array([ax, ay, 0])
+	b = np.array([bx, by, 0])
+	a = a / np.linalg.norm(a)
+	b = b / np.linalg.norm(b)
 
-def directiveGain(ax, ay, az, normalized_r, normalized_x):
+	angle = acos(a.dot(b))
+	cross = np.cross(a, b)
+	if np.array([0, 0, 1]).dot(cross) < 0:
+		angle = -angle
+
+	return angle
+
+def directiveGain(radius, normalized_r, normalized_x):
 	def evaluate_on_sphere(vr):
 		# TODO: divide by smth
         
-		if vr[0] != 0:
-			pol = np.array([vr[2] / vr[0], 0, 1])
-		elif vr[2] != 0:
-			pol = np.array([vr[0] / vr[2], 0, 1])
+		if abs(vr[0]) > EPS:
+			pol = np.array([-vr[2] / vr[0], 0, 1])
+		elif abs(vr[2]) > EPS:
+			pol = np.array([1, 0, -vr[0] / vr[2]])
 		else:
 			pol = np.array([-1, 0, 0])
 		b = np.array([0, 0, 1])
 
-		print "before", vr
+		print "before", vr, "pol", pol
         
-		angle = angle2D(vr[0], vr[2], 0, 1)
-		vr = rotateAroundY(vr, angle)
-		pol = rotateAroundY(pol, angle)
-		b = rotateAroundY(b, angle)
+		if abs(vr[0]) > EPS or abs(vr[2]) > EPS:
+			angle = angle2D(vr[0], vr[2], 0, 1)
+			vr = rotateAroundY(vr, angle)
+			pol = rotateAroundY(pol, angle)
+			b = rotateAroundY(b, angle)
+			print "after0", vr, "angle", angle, "pol", pol
 
-		angle = angle2D(vr[1], vr[2], 0, 1)
-		vr = rotateAroundX(vr, angle)
-		pol = rotateAroundX(pol, angle)
-		b = rotateAroundX(b, angle)
+		if abs(vr[1]) > EPS or abs(vr[2]) > EPS:
+			angle = angle2D(vr[1], vr[2], 0, 1)
+			vr = rotateAroundX(vr, angle)
+			pol = rotateAroundX(pol, angle)
+			b = rotateAroundX(b, angle)
+			print "after1", vr, "angle", angle, "pol", pol
 
+		assert abs(pol[0]) > EPS or abs(pol[1]) > EPS
 		angle = angle2D(pol[0], pol[1], 1, 0)
 		vr = rotateAroundZ(vr, angle)
 		pol = rotateAroundZ(pol, angle)
 		b = rotateAroundZ(b, angle)
         
-		print "after", vr
+		print "after", vr, "b", b, "pol", pol
 
 		_, E, H = fieldnlay(np.array([normalized_x]), np.array([m]), b.reshape(1, 3), pl=-1)
 
 		assert E.shape == (1, 1, 3)
-		vx, vy, vz = E[0][0]
+		vx, vy, vz = np.real(E[0][0])
 		bx, by, bz = b
 
 		px = by * vz - bz * vy
@@ -82,10 +100,11 @@ def directiveGain(ax, ay, az, normalized_r, normalized_x):
 
 	val = quadpy.sphere.integrate(
 	    lambda xs: np.apply_along_axis(evaluate_on_sphere, 0, xs),
-	    [0.0, 0.0, 0.0], normalized_r,
+	    [0.0, 0.0, 0.0], radius,
 	    quadpy.sphere.Lebedev("19"))
 
 	return val
+
 
 def fieldplot2(flow_total, Eabs, coordX, coordZ, x, m, npts, factor):
 	field_to_plot='Eabs'
