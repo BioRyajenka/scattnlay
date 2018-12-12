@@ -8,7 +8,7 @@ from matplotlib.path import Path
 
 from fieldplot import GetFlow3D
 
-from math import sqrt, cos, sin, acos, pi
+from math import sqrt, cos, sin, acos, pi, atan2
 import quadpy
 
 from numpy.testing import assert_allclose
@@ -37,17 +37,23 @@ def rotateAroundZ(v, angle):
         [0, 0, 1]], v)
 
 # oriented angle from a to b
+# def angle2D(ax, ay, bx, by):
+#     a = np.array([ax, ay, 0])
+#     b = np.array([bx, by, 0])
+#     a = a / np.linalg.norm(a)
+#     b = b / np.linalg.norm(b)
+
+#     angle = acos(min(1.0, a.dot(b)))
+#     cross = np.cross(a, b)
+#     if np.array([0, 0, 1]).dot(cross) < 0:
+#         angle = -angle
+
+#     return -angle
+
 def angle2D(ax, ay, bx, by):
-    a = np.array([ax, ay, 0])
-    b = np.array([bx, by, 0])
-    a = a / np.linalg.norm(a)
-    b = b / np.linalg.norm(b)
-
-    angle = acos(min(1.0, a.dot(b)))
-    cross = np.cross(a, b)
-    if np.array([0, 0, 1]).dot(cross) < 0:
-        angle = -angle
-
+    a_angle = atan2(ay,ax)
+    b_angle = atan2(by,bx)
+    angle = b_angle-a_angle
     return -angle
 
 import unittest
@@ -128,7 +134,7 @@ class TestRotations(unittest.TestCase):
 if __name__ == '__main__':
     unittest.main()
 
-def fieldplot2(flow_total, Eabs, coordX, coordZ, x, m, npts, factor):
+def fieldplot2(Eabs, coordX, coordZ, x, m, npts, factor, flow_total=0):
     field_to_plot='Eabs'
     WL_units='nm'
     outline_width = 1
@@ -210,3 +216,9 @@ def fieldplot2(flow_total, Eabs, coordX, coordZ, x, m, npts, factor):
             ax.add_patch(patch)
             
     fig.subplots_adjust(hspace=0.3, wspace=-0.1)
+
+
+def get_points():
+    xs = quadpy.sphere.Lebedev("19").points
+
+    
