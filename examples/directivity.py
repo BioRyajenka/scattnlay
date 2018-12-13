@@ -145,6 +145,15 @@ def get_projections(coords):
     # prj[:,0] = 1.
     # prj = rotateAroundY(prj, angles[:,1])
     # prj = rotateAroundX(prj, angles[:,0])
+    for i in range(len(coords)):
+        if np.isclose(coords[i][0],0.) and np.isclose(coords[i][2],0.):
+            # print("zero")
+            prj[i] = np.array([-1.0, 0.0, 0.0])
+        if np.isclose(angle_between(coords[i],prj[i]),pi/2) == False:        
+            for j in range(2):
+                prj[i][0] *=(-1)**j
+                prj[i][2] *=(-1)**(j+1)            
+                if np.isclose(angle_between(coords[i],prj[i]),pi/2) == True: break
     return prj
 
 
@@ -184,15 +193,6 @@ prj = get_projections(coords)
 # print(coords)
 # print(angles)
 for i in range(len(coords)):
-    if np.isclose(coords[i][0],0.) and np.isclose(coords[i][2],0.):
-        # print("zero")
-        prj[i] = np.array([-1.0, 0.0, 0.0])
-    if np.isclose(angle_between(coords[i],prj[i]),pi/2) == False:        
-        for j in range(2):
-            prj[i][0] *=(-1)**j
-            prj[i][2] *=(-1)**(j+1)            
-            if np.isclose(angle_between(coords[i],prj[i]),pi/2) == True: break
-
     print(np.isclose(angle_between(coords[i],prj[i]),pi/2))
 
 
