@@ -119,7 +119,7 @@ def cart2sph(xyz):
 
 def get_angles(coords):
     ptsnew = np.zeros(coords.shape)
-    ptsnew[:,0] = np.arctan2(coords[:,1], coords[:,2])
+    ptsnew[:,0] = -np.arctan2(coords[:,1], coords[:,2])
     ptsnew[:,1] = -np.arctan2(coords[:,0], coords[:,2])
     ptsnew[:,2] = -np.arctan2(coords[:,0], coords[:,1])
     return ptsnew
