@@ -113,15 +113,22 @@ def cart2sph(xyz):
     xy = xyz[:,0]**2 + xyz[:,1]**2
     ptsnew[:,0] = np.sqrt(xy + xyz[:,2]**2)
     ptsnew[:,1] = np.arctan2(np.sqrt(xy), xyz[:,2]) # for elevation angle defined from Z-axis down
-    #ptsnew[:,4] = np.arctan2(xyz[:,2], np.sqrt(xy)) # for elevation angle defined from XY-plane up
+    #ptsnew[:,1] = np.arctan2(xyz[:,2], np.sqrt(xy)) # for elevation angle defined from XY-plane up
     ptsnew[:,2] = np.arctan2(xyz[:,1], xyz[:,0])
     return ptsnew
 
+def get_angles(coords):
+    ptsnew = np.zeros(coords.shape)
+    ptsnew[:,0] = np.arctan2(coords[:,1], coords[:,2])
+    ptsnew[:,1] = -np.arctan2(coords[:,0], coords[:,2])
+    ptsnew[:,2] = -np.arctan2(coords[:,0], coords[:,1])
+    return ptsnew
 
-def get_projections(coords_sph):
-    prj = np.zeros(coords_sph.shape)
+def get_projections(angles):
+    prj = np.zeros((len(angles),3))
     prj[:,0] = 1.
-    prj = rotateAroundY(prj, coords_sph[:,2])
+    prj = rotateAroundY(prj, angles[:,1])
+    prj = rotateAroundX(prj, angles[:,0])
     return prj
 
 
@@ -133,10 +140,13 @@ def get_projections(coords_sph):
 # plt.show()
 
 coords = get_points('quad', r=core_r*4./5., quad_n=5)
+#coords = coords[:6]
 Eamp = get_field(coords)
-coords_sph = cart2sph(coords)
-prj = get_projections(coords_sph)
-print(coords_sph)
+#coords_sph = cart2sph(coords)
+angles = get_angles(coords)
+prj = get_projections(angles)
+print(coords)
+print(angles)
 
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
