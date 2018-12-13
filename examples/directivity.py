@@ -119,19 +119,54 @@ def cart2sph(xyz):
 
 def get_angles(coords):
     ptsnew = np.zeros(coords.shape)
-    ptsnew[:,0] = -np.arctan2(coords[:,1], coords[:,2])
+    ptsnew[:,0] = np.arctan2(coords[:,1], coords[:,2])*np.sign(coords[:,2])
     ptsnew[:,1] = -np.arctan2(coords[:,0], coords[:,2])
     ptsnew[:,2] = -np.arctan2(coords[:,0], coords[:,1])
     return ptsnew
 
-def get_projections(angles):
-    prj = np.zeros((len(angles),3))
-    prj[:,0] = 1.
-    prj = rotateAroundY(prj, angles[:,1])
-    prj = rotateAroundX(prj, angles[:,0])
+# b - coord
+# a - proj
+# a1^2+a3^2 = 1
+# a3 = sqrt(1-a1^2)
+# a1*b1 + a3*b3 = 0
+# a1*b1 + sqrt(1-a1^2)*b3 = 0
+# a1*b1 = -sqrt(1-a1^2)*b3 
+# a1^2 * b1^2 = (-1)^2* (1-a1^2)*b3^2 
+# a1^2 * b1^2 - (1-a1^2)*b3^2 = 0
+# a1^2 * (b1^2 + *b3^2) = b3^2
+# a1^2   = b3^2/(b1^2 + *b3^2)
+# a1  = sqrt(b3^2/(b1^2 + *b3^2))
+
+def get_projections(coords):
+    prj = np.zeros((len(coords),3))
+    b = coords
+    prj[:,0] = -np.sqrt(b[:,2]**2/(b[:,0]**2 + b[:,2]**2))
+    prj[:,2] = np.sqrt(1-prj[:,0]**2)
+    # prj[:,0] = 1.
+    # prj = rotateAroundY(prj, angles[:,1])
+    # prj = rotateAroundX(prj, angles[:,0])
     return prj
 
 
+#https://stackoverflow.com/a/13849249/4280547
+def unit_vector(vector):
+    """ Returns the unit vector of the vector.  """
+    return vector / np.linalg.norm(vector)
+
+#https://stackoverflow.com/a/13849249/4280547
+def angle_between(v1, v2):
+    """ Returns the angle in radians between vectors 'v1' and 'v2'::
+
+            >>> angle_between((1, 0, 0), (0, 1, 0))
+            1.5707963267948966
+            >>> angle_between((1, 0, 0), (1, 0, 0))
+            0.0
+            >>> angle_between((1, 0, 0), (-1, 0, 0))
+            3.141592653589793
+    """
+    v1_u = unit_vector(v1)
+    v2_u = unit_vector(v2)
+    return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
 
 # coords = get_points('meshXZ')
 # Eamp = get_field(coords)
@@ -143,10 +178,22 @@ coords = get_points('quad', r=core_r*4./5., quad_n=5)
 #coords = coords[:6]
 Eamp = get_field(coords)
 #coords_sph = cart2sph(coords)
-angles = get_angles(coords)
-prj = get_projections(angles)
-print(coords)
-print(angles)
+#angles = get_angles(coords)
+prj = get_projections(coords)
+
+# print(coords)
+# print(angles)
+for i in range(len(coords)):
+    if np.isclose(angle_between(coords[i],prj[i]),pi/2) == False:
+        for j in range(2):
+            prj[i][0] *=(-1)**j
+            prj[i][2] *=(-1)**(j+1)            
+            if np.isclose(angle_between(coords[i],prj[i]),pi/2) == True: break
+                
+            
+
+    print(np.isclose(angle_between(coords[i],prj[i]),pi/2))
+
 
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
