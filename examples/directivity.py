@@ -100,11 +100,28 @@ def multi_hstack(stack_vec_list):
     """
     stacked = []
     for vec_list in stack_vec_list:
-        single_stack = np.array([])
-        for arr in vec_list:
-            single_stack = np.hstack((single_stack, arr))
-        stacked.append(single_stack)
+        stacked.append(np.hstack(vec_list))
     return stacked
+
+
+def cart2sph(xyz):
+    """Add columns with cartesian coordinats converted to spherical
+
+    https://stackoverflow.com/questions/4116658/faster-numpy-cartesian-to-spherical-coordinate-conversion
+    """
+    ptsnew = np.zeros(xyz.shape)
+    xy = xyz[:,0]**2 + xyz[:,1]**2
+    ptsnew[:,0] = np.sqrt(xy + xyz[:,2]**2)
+    ptsnew[:,1] = np.arctan2(np.sqrt(xy), xyz[:,2]) # for elevation angle defined from Z-axis down
+    #ptsnew[:,4] = np.arctan2(xyz[:,2], np.sqrt(xy)) # for elevation angle defined from XY-plane up
+    ptsnew[:,2] = np.arctan2(xyz[:,1], xyz[:,0])
+    return ptsnew
+
+
+def get_projections(coords_sph):
+    prj = np.zeros(coords_sph.shape)
+    prj[:,0] = 1.
+    return prj
 
 
 
@@ -116,16 +133,24 @@ def multi_hstack(stack_vec_list):
 
 coords = get_points('quad', r=core_r*4./5., quad_n=5)
 Eamp = get_field(coords)
+coords_sph = cart2sph(coords)
+prj = get_projections(coords_sph)
+print(coords_sph)
+
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
 #ax.scatter(coords[:,0], coords[:,1], coords[:,2], s=Eabs*10)
 X = coords[:,0]
 Y = coords[:,1]
 Z = coords[:,2]
-Emax = np.max(Eamp)/15
-U = Eamp[:, 0]/Emax
-V = Eamp[:, 1]/Emax
-W = Eamp[:, 2]/Emax
+# Emax = np.max(Eamp)/15
+# U = Eamp[:, 0]/Emax
+# V = Eamp[:, 1]/Emax
+# W = Eamp[:, 2]/Emax
+scale = 15.
+U = prj[:, 0]*scale
+V = prj[:, 1]*scale
+W = prj[:, 2]*scale
 
 scale = 1.
 U, V, W, X, Y, Z = multi_hstack(( (U,X/scale), (V,Y/scale), (W,Z/scale),
