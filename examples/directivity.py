@@ -121,6 +121,7 @@ def cart2sph(xyz):
 def get_projections(coords_sph):
     prj = np.zeros(coords_sph.shape)
     prj[:,0] = 1.
+    prj = rotateAroundY(prj, coords_sph[:,2])
     return prj
 
 

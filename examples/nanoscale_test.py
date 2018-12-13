@@ -17,28 +17,31 @@ EPS = 1e-8
 
 def _rotate(m, v):
     v = np.asarray(v)
-    if len(v.shape) == 2: v = v.T
-    result =  np.tensordot(np.asarray(m),np.asarray(v), axes=(1,0))
-    if len(v.shape) == 2: return result.T
-    return result
+    m = np.asarray(m)
+    if len(v.shape) == 2:
+        result = np.zeros(v.shape)
+        for i in range(len(v)):
+            result[i] = m[:,:,i].dot(v[i])
+        return result
+    return m.dot(v)
 
 def rotateAroundX(v, angle):
     return _rotate(
-        [[1, 0, 0],
-        [0, cos(angle), sin(angle)],
-        [0, -sin(angle), cos(angle)]], v)
+        np.array([[1+0*angle,     0*angle,   0*angle ],
+                  [  0*angle,  cos(angle), sin(angle)],
+                  [  0*angle, -sin(angle), cos(angle)]]), v)
 
 def rotateAroundY(v, angle):
     return _rotate(
-        [[cos(angle), 0, -sin(angle)],
-        [0, 1, 0],
-        [sin(angle), 0, cos(angle)]], v)
+        np.array([[cos(angle),   0*angle, -sin(angle)],
+                  [  0*angle , 1+0*angle,    0*angle] ,
+                  [sin(angle),   0*angle,  cos(angle)]]), v)
 
 def rotateAroundZ(v, angle):
     return _rotate(
-        [[cos(angle), sin(angle), 0],
-        [-sin(angle), cos(angle), 0],
-        [0, 0, 1]], v)
+        np.array([[ cos(angle), sin(angle),   0*angle],
+                  [-sin(angle), cos(angle),   0*angle],
+                  [   0*angle ,    0*angle, 1+0*angle]]), v)
 
 # oriented angle from a to b
 def angle2D(ax, ay, bx, by):
@@ -58,27 +61,21 @@ class TestRotations(unittest.TestCase):
     def testRotateAroundXSimple2(self):
         assert_allclose(rotateAroundX([1.0, 3.0, 1.0], pi / 2), np.array([1.0, 1.0, -3.0]))
 
+    def testRotateAroundXSimple4(self):
+        assert_allclose(rotateAroundX([1.0, 3.0, 1.0], pi), np.array([1.0, -3.0, -1.0]))
+
     def testRotateAroundXVector(self):
-        assert_allclose(rotateAroundX(np.array([[1.0, 1.0, 1.0],
-                                                [2.0, 1.0, 1.0]]), pi / 2),
-                        np.array([[1.0, 1.0, -1.0],
-                                  [2.0, 1.0, -1.0]]))
-    def testRotateAroundXVector2(self):
-        assert_allclose(rotateAroundX(np.array([[1.0, 1.0, 1.0],
-                                                [2.0, 1.0, 1.0],
-                                                [1.0, 3.0, 1.0]]), pi / 2),
-                        np.array([[1.0, 1.0, -1.0],
-                                  [2.0, 1.0, -1.0],
-                                  [1.0, 1.0, -3.0]]))
-    def testRotateAroundXVector3(self):
+        angle = np.array([pi/2, pi/2])
+        # print(cos([pi/2, pi/2]))
         assert_allclose(rotateAroundX(np.array([[1.0, 1.0, 1.0],
                                                 [2.0, 1.0, 1.0],
                                                 [1.0, 3.0, 1.0],
-                                                [4.0, 4.0, 1.0]]), pi / 2),
+                                                [1.0, 3.0, 1.0]]),
+                                      np.array([pi/2, pi/2, pi, pi/2])),
                         np.array([[1.0, 1.0, -1.0],
                                   [2.0, 1.0, -1.0],
-                                  [1.0, 1.0, -3.0],
-                                  [4.0, 1.0, -4.0]]))
+                                  [1.0, -3.0, -1.0],
+                                  [1.0, 1.0, -3.0]]))
 
     def testRotateAroundYSimple(self):
         assert_allclose(rotateAroundY([1.0, 1.0, 1.0], pi / 2), np.array([-1.0, 1.0, 1.0]))
