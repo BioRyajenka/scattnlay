@@ -137,23 +137,30 @@ def get_angles(coords):
 # a1^2   = b3^2/(b1^2 + *b3^2)
 # a1  = sqrt(b3^2/(b1^2 + *b3^2))
 
-def get_projections(coords):
+def get_projections(coords, pol=0):
     prj = np.zeros((len(coords),3))
     b = coords
-    prj[:,0] = -np.sqrt(b[:,2]**2/(b[:,0]**2 + b[:,2]**2))
-    prj[:,2] = np.sqrt(1-prj[:,0]**2)
-    # prj[:,0] = 1.
+    prj[:,pol] = -np.sqrt(b[:,2]**2/(b[:,pol]**2 + b[:,2]**2))
+    prj[:,2] = np.sqrt(1-prj[:,pol]**2)
+    # prj[:,pol] = 1.
     # prj = rotateAroundY(prj, angles[:,1])
-    # prj = rotateAroundX(prj, angles[:,0])
+    # prj = rotateAroundX(prj, angles[:,pol])
     for i in range(len(coords)):
-        if np.isclose(coords[i][0],0.) and np.isclose(coords[i][2],0.):
+        if np.isclose(coords[i][pol],0.) and np.isclose(coords[i][2],0.):
             # print("zero")
-            prj[i] = np.array([-1.0, 0.0, 0.0])
+            single = np.array([0.0, 0.0, 0.0])
+            single[pol] = -1.
+            prj[i] = single
         if np.isclose(angle_between(coords[i],prj[i]),pi/2) == False:        
             for j in range(2):
                 prj[i][0] *=(-1)**j
                 prj[i][2] *=(-1)**(j+1)            
                 if np.isclose(angle_between(coords[i],prj[i]),pi/2) == True: break
+        #Check the result
+        if not np.isclose(angle_between(coords[i],prj[i]),pi/2):
+            print("!!!!!! Projection problem !!!!!!!")
+
+
     return prj
 
 
@@ -183,17 +190,15 @@ def angle_between(v1, v2):
 # fieldplot2(Eabs, coords[:,0], coords[:,2], x, m, npts, factor)
 # plt.show()
 
-coords = get_points('quad', r=core_r*4./5., quad_n=5)
+coords = get_points('quad', r=core_r*4./5., quad_n=19)
 #coords = coords[:6]
 Eamp = get_field(coords)
 #coords_sph = cart2sph(coords)
 #angles = get_angles(coords)
-prj = get_projections(coords)
+prj = get_projections(coords, pol=1)
 
 # print(coords)
 # print(angles)
-for i in range(len(coords)):
-    print(np.isclose(angle_between(coords[i],prj[i]),pi/2))
 
 
 fig = plt.figure()
