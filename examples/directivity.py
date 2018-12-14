@@ -4,6 +4,7 @@ from matplotlib import patches
 from matplotlib.colors import LogNorm
 from matplotlib.path import Path
 from mpl_toolkits.mplot3d import Axes3D
+from numba import complex128,float64,int64,jit
 import matplotlib.pyplot as plt
 import numpy as np
 import quadpy
@@ -124,6 +125,14 @@ def get_angles(coords):
     ptsnew[:,2] = -np.arctan2(coords[:,0], coords[:,1])
     return ptsnew
 
+
+@jit(#complex128(complex128[:], complex128[:]),
+     nopython=True, cache=True, nogil=True)
+def isclose(a,b):
+    atol = 1e-8
+    rtol = 1e-5
+    return np.absolute(a - b) <= (atol + rtol * np.absolute(b))
+
 ## Derivation of equation for the projection
 # b - coord
 # a - proj  #it is in XZ plane, so a2=0
@@ -137,6 +146,8 @@ def get_angles(coords):
 # a1^2 * (b1^2 + *b3^2) = b3^2
 # a1^2   = b3^2/(b1^2 + *b3^2)
 # a1  = sqrt(b3^2/(b1^2 + *b3^2))
+@jit(#complex128(complex128[:], complex128[:]),
+     nopython=True, cache=True, nogil=True)
 def get_projections(coords, pol=0):
     """Get equivalent dipole vectors to project field on it.
 
@@ -152,28 +163,32 @@ def get_projections(coords, pol=0):
     prj[:,pol] = -np.sqrt(b[:,2]**2/(b[:,pol]**2 + b[:,2]**2))
     prj[:,2] = np.sqrt(1-prj[:,pol]**2)
     for i in range(len(coords)):
-        if np.isclose(coords[i][pol],0.) and np.isclose(coords[i][2],0.):
+        if isclose(coords[i][pol],0.) and isclose(coords[i][2],0.):
             # print("zero")
             single = np.array([0.0, 0.0, 0.0])
             single[pol] = -1.
             prj[i] = single
-        if np.isclose(angle_between(coords[i],prj[i]),pi/2) == False:        
+        if isclose(angle_between(coords[i],prj[i]),pi/2) == False:        
             for j in range(2):
                 prj[i][0] *=(-1)**j
                 prj[i][2] *=(-1)**(j+1)            
-                if np.isclose(angle_between(coords[i],prj[i]),pi/2) == True: break
+                if isclose(angle_between(coords[i],prj[i]),pi/2) == True: break
         #Check the result
-        if not np.isclose(angle_between(coords[i],prj[i]),pi/2):
+        if not isclose(angle_between(coords[i],prj[i]),pi/2):
             print("!!!!!! Projection problem !!!!!!!")
     return prj
 
 
 #https://stackoverflow.com/a/13849249/4280547
+@jit(#complex128(complex128[:], complex128[:]),
+     nopython=True, cache=True, nogil=True)
 def unit_vector(vector):
     """ Returns the unit vector of the vector.  """
     return vector / np.linalg.norm(vector)
 
 #https://stackoverflow.com/a/13849249/4280547
+@jit(#complex128(complex128[:], complex128[:]),
+     nopython=True, cache=True, nogil=True)
 def angle_between(v1, v2):
     """ Returns the angle in radians between vectors 'v1' and 'v2'::
 
@@ -186,7 +201,10 @@ def angle_between(v1, v2):
     """
     v1_u = unit_vector(v1)
     v2_u = unit_vector(v2)
-    return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
+    dot = np.dot(v1_u, v2_u)
+    if dot < -1: dot = -1
+    if dot > 1: dot = 1
+    return np.arccos(dot)
 
 
 def visualization_test_of_projection_vectors(pol=0):
@@ -212,37 +230,38 @@ def visualization_test_of_projection_vectors(pol=0):
     plt.show()
 
 
-visualization_test_of_projection_vectors(0)
+#visualization_test_of_projection_vectors(0)
 
 # coords = get_points('meshXZ')
 # Eamp = get_field(coords)
 # Eabs = np.sqrt(Eamp[:, 0]**2 + Eamp[:, 1]**2 + Eamp[:, 2]**2)
 # fieldplot2(Eabs, coords[:,0], coords[:,2], x, m, npts, factor)
 # plt.show()
-
-coords = get_points('quad', r=core_r*4./5., quad_n=19)
-#coords = coords[:6]
+coords = get_points('quad', r=core_r*4./5., quad_n=131)
 Eamp = get_field(coords)
-prj = get_projections(coords, pol=0)
+for i in range(200):
+    #coords = coords[:6]
+    prj = get_projections(coords, pol=0)
+print(len(coords))
 
-fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
-#ax.scatter(coords[:,0], coords[:,1], coords[:,2], s=Eabs*10)
-X = coords[:,0]
-Y = coords[:,1]
-Z = coords[:,2]
-# Emax = np.max(Eamp)/15
-# U = Eamp[:, 0]/Emax
-# V = Eamp[:, 1]/Emax
-# W = Eamp[:, 2]/Emax
-scale = 15.
-U = prj[:, 0]*scale
-V = prj[:, 1]*scale
-W = prj[:, 2]*scale
+# fig = plt.figure()
+# ax = fig.add_subplot(111, projection='3d')
+# #ax.scatter(coords[:,0], coords[:,1], coords[:,2], s=Eabs*10)
+# X = coords[:,0]
+# Y = coords[:,1]
+# Z = coords[:,2]
+# # Emax = np.max(Eamp)/15
+# # U = Eamp[:, 0]/Emax
+# # V = Eamp[:, 1]/Emax
+# # W = Eamp[:, 2]/Emax
+# scale = 15.
+# U = prj[:, 0]*scale
+# V = prj[:, 1]*scale
+# W = prj[:, 2]*scale
 
-scale = 1.
-U, V, W, X, Y, Z = multi_hstack(( (U,X/scale), (V,Y/scale), (W,Z/scale),
-                                  (X,X*0.), (Y,Y*0.), (Z,Z*0.)  ))
+# scale = 1.
+# U, V, W, X, Y, Z = multi_hstack(( (U,X/scale), (V,Y/scale), (W,Z/scale),
+#                                   (X,X*0.), (Y,Y*0.), (Z,Z*0.)  ))
 
 # ax.quiver(X, Y, Z, U, V, W)
 # plt.show()
