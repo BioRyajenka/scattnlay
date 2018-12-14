@@ -124,11 +124,12 @@ def get_angles(coords):
     ptsnew[:,2] = -np.arctan2(coords[:,0], coords[:,1])
     return ptsnew
 
+## Derivation of equation for the projection
 # b - coord
-# a - proj
-# a1^2+a3^2 = 1
+# a - proj  #it is in XZ plane, so a2=0
+# a1^2+a3^2 = 1  #vector norm
 # a3 = sqrt(1-a1^2)
-# a1*b1 + a3*b3 = 0
+# a1*b1 + a3*b3 = 0   #dot product with a2=0
 # a1*b1 + sqrt(1-a1^2)*b3 = 0
 # a1*b1 = -sqrt(1-a1^2)*b3 
 # a1^2 * b1^2 = (-1)^2* (1-a1^2)*b3^2 
@@ -136,15 +137,20 @@ def get_angles(coords):
 # a1^2 * (b1^2 + *b3^2) = b3^2
 # a1^2   = b3^2/(b1^2 + *b3^2)
 # a1  = sqrt(b3^2/(b1^2 + *b3^2))
-
 def get_projections(coords, pol=0):
+    """Get equivalent dipole vectors to project field on it.
+
+    Args:
+        coords (array of points): position of points to evaluate projections.
+                       pol (int): polarization of the projection. 0 - along X, 1 - along Y.
+    Return:
+        Projection vectors constructed so that: 1) each is along the normal to coord vector
+        2) it is in XZ plane for pol=0 or in YZ plane for pol=1    
+    """
     prj = np.zeros((len(coords),3))
     b = coords
     prj[:,pol] = -np.sqrt(b[:,2]**2/(b[:,pol]**2 + b[:,2]**2))
     prj[:,2] = np.sqrt(1-prj[:,pol]**2)
-    # prj[:,pol] = 1.
-    # prj = rotateAroundY(prj, angles[:,1])
-    # prj = rotateAroundX(prj, angles[:,pol])
     for i in range(len(coords)):
         if np.isclose(coords[i][pol],0.) and np.isclose(coords[i][2],0.):
             # print("zero")
@@ -159,8 +165,6 @@ def get_projections(coords, pol=0):
         #Check the result
         if not np.isclose(angle_between(coords[i],prj[i]),pi/2):
             print("!!!!!! Projection problem !!!!!!!")
-
-
     return prj
 
 
@@ -184,6 +188,32 @@ def angle_between(v1, v2):
     v2_u = unit_vector(v2)
     return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
 
+
+def visualization_test_of_projection_vectors(pol=0):
+    """Plot projections vectors to visualy verify them """
+    coords = get_points('quad', r=core_r*4./5., quad_n=5)
+    Eamp = get_field(coords)
+    prj = get_projections(coords, pol=pol)
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    X = coords[:,0]
+    Y = coords[:,1]
+    Z = coords[:,2]
+    scale = 15.
+    U = prj[:, 0]*scale
+    V = prj[:, 1]*scale
+    W = prj[:, 2]*scale
+    # plot projections with origin at coord, and coords from zero
+    U, V, W, X, Y, Z = multi_hstack(( (U,X), (V,Y), (W,Z),
+                                     (X,X*0.), (Y,Y*0.), (Z,Z*0.)  ))
+
+    ax.quiver(X, Y, Z, U, V, W)
+    plt.show()
+
+
+visualization_test_of_projection_vectors(0)
+
 # coords = get_points('meshXZ')
 # Eamp = get_field(coords)
 # Eabs = np.sqrt(Eamp[:, 0]**2 + Eamp[:, 1]**2 + Eamp[:, 2]**2)
@@ -193,13 +223,7 @@ def angle_between(v1, v2):
 coords = get_points('quad', r=core_r*4./5., quad_n=19)
 #coords = coords[:6]
 Eamp = get_field(coords)
-#coords_sph = cart2sph(coords)
-#angles = get_angles(coords)
-prj = get_projections(coords, pol=1)
-
-# print(coords)
-# print(angles)
-
+prj = get_projections(coords, pol=0)
 
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
@@ -220,5 +244,5 @@ scale = 1.
 U, V, W, X, Y, Z = multi_hstack(( (U,X/scale), (V,Y/scale), (W,Z/scale),
                                   (X,X*0.), (Y,Y*0.), (Z,Z*0.)  ))
 
-ax.quiver(X, Y, Z, U, V, W)
-plt.show()
+# ax.quiver(X, Y, Z, U, V, W)
+# plt.show()
