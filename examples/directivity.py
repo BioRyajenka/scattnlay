@@ -26,7 +26,7 @@ index = 4.6265+0.13845j	# refractive index
 #index = 4.639+0.078841j
 #index = 21.4**0.5
 
-npts = 151					# plot will be npts x npts
+npts = 150			# plot will be npts x npts
 factor=1.1					# area of plot
 
 x = np.ones((1), dtype = np.float64)
@@ -51,7 +51,7 @@ def get_field(coord):
                         2.0*np.pi*coord/WL,
                         pl=-1)
     Ec = E[0, :, :]
-    Eamp = np.absolute(Ec)
+    Eamp = np.real(Ec)
     return Eamp
 
 
@@ -209,7 +209,8 @@ def angle_between(v1, v2):
 
 def visualization_test_of_projection_vectors(pol=0):
     """Plot projections vectors to visualy verify them """
-    coords = get_points('quad', r=core_r*4./5., quad_n=5)
+    #coords = get_points('quad', r=core_r*4./5., quad_n=5)
+    coords = get_points('meshXZ')
     Eamp = get_field(coords)
     prj = get_projections(coords, pol=pol)
 
@@ -232,36 +233,60 @@ def visualization_test_of_projection_vectors(pol=0):
 
 #visualization_test_of_projection_vectors(0)
 
-# coords = get_points('meshXZ')
+coords = get_points('meshXY')
+Eamp = get_field(coords)
+Eabs = np.sqrt(Eamp[:, 0]**2 + Eamp[:, 1]**2 + Eamp[:, 2]**2)
+prj = get_projections(coords, pol=0)
+Eprj = np.zeros(len(Eamp))
+print(prj)
+for i in range(len(Eamp)):
+    Eprj[i] = np.abs(prj[i].dot(Eamp[i]))
+
+
+print(Eamp)
+fieldplot2(Eprj, coords[:,0], coords[:,1], x, m, npts, factor)
+plt.show()
+
+
+# coords = get_points('quad', r=core_r*4./5., quad_n=77)
 # Eamp = get_field(coords)
 # Eabs = np.sqrt(Eamp[:, 0]**2 + Eamp[:, 1]**2 + Eamp[:, 2]**2)
-# fieldplot2(Eabs, coords[:,0], coords[:,2], x, m, npts, factor)
-# plt.show()
-coords = get_points('quad', r=core_r*4./5., quad_n=131)
-Eamp = get_field(coords)
-for i in range(200):
-    #coords = coords[:6]
-    prj = get_projections(coords, pol=0)
-print(len(coords))
+# prj = get_projections(coords, pol=1)
+
+# Eprj = np.zeros(len(Eamp))
+# for i in range(len(Eamp)):
+#     Eprj[i] = np.abs(prj[i].dot(Eamp[i]))
+# print(Eprj/Eabs)
+
+# vEprj = np.zeros(coords.shape)
+# for i in range(len(coords)):
+#     vEprj[i]=coords[i]*Eprj[i]
+#     #vEprj[i]=coords[i]*Eabs[i]
 
 # fig = plt.figure()
 # ax = fig.add_subplot(111, projection='3d')
-# #ax.scatter(coords[:,0], coords[:,1], coords[:,2], s=Eabs*10)
+# ax.scatter(vEprj[:,0], vEprj[:,1], vEprj[:,2])
+
+
+
+# #coords = get_points('quad', r=core_r*4./5., quad_n=5)
+# Eamp = get_field(coords)
+# prj = get_projections(coords, pol=0)
+# fig = plt.figure()
+# ax = fig.add_subplot(111, projection='3d')
 # X = coords[:,0]
 # Y = coords[:,1]
 # Z = coords[:,2]
-# # Emax = np.max(Eamp)/15
-# # U = Eamp[:, 0]/Emax
-# # V = Eamp[:, 1]/Emax
-# # W = Eamp[:, 2]/Emax
 # scale = 15.
 # U = prj[:, 0]*scale
 # V = prj[:, 1]*scale
 # W = prj[:, 2]*scale
-
-# scale = 1.
-# U, V, W, X, Y, Z = multi_hstack(( (U,X/scale), (V,Y/scale), (W,Z/scale),
-#                                   (X,X*0.), (Y,Y*0.), (Z,Z*0.)  ))
-
+# Emax = np.max(Eamp)/15
+# U = Eamp[:, 0]/Emax
+# V = Eamp[:, 1]/Emax
+# W = Eamp[:, 2]/Emax
+# # plot projections with origin at coord, and coords from zero
+# U, V, W, X, Y, Z = multi_hstack(( (U,X), (V,Y), (W,Z),
+#                                  (X,X*0.), (Y,Y*0.), (Z,Z*0.)  ))
 # ax.quiver(X, Y, Z, U, V, W)
 # plt.show()
