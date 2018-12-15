@@ -27,7 +27,7 @@ index = 4.6265+0.13845j	# refractive index
 #index = 21.4**0.5
 
 npts = 150			# plot will be npts x npts
-factor=1.1					# area of plot
+factor=1.3					# area of plot
 
 x = np.ones((1), dtype = np.float64)
 x[0] = core_r
@@ -52,7 +52,16 @@ def get_field(coord):
                         pl=-1)
     Ec = E[0, :, :]
     Eamp = np.real(Ec)
+
     #Eamp = np.absolute(Ec)
+    
+    Ephi = -np.angle(Ec[:,0])
+    Ephi = np.array([Ephi, Ephi, Ephi]).T
+    Eamp = np.real(Ec*(np.cos(Ephi)+np.sin(Ephi)*1j))
+    # Eamp[coord[:,0]<0 , 2] *= -1  # Hack to get symmetric projections
+    
+    # if np.max(Eamp[:,1])<1e-15: Eamp[:,1]*=0.
+        
     return Eamp
 
 
@@ -246,57 +255,87 @@ def visualization_test_of_projection_vectors(pol=0):
     plt.show()
 
 
+def integrand(coords):
+    if coords.shape[0] == 3: coords = coords.T
+    # print(coords.shape)
+    Eamp = get_field(coords)
+    prj = get_projections(coords, pol=0)
+    Iprj = get_projected_intensity(prj, Eamp)
+    return Iprj
+    
 #visualization_test_of_projection_vectors(0)
 
-coords = get_points('meshXZ')
-Eamp = get_field(coords)
-Eabs = np.sqrt(Eamp[:, 0]**2 + Eamp[:, 1]**2 + Eamp[:, 2]**2)
-prj = get_projections(coords, pol=0)
-Iprj = get_projected_intensity(prj, Eamp)
-#fieldplot2(Iprj, coords[:,0], coords[:,2], x, m, npts, factor)
-#fieldplot2(Eabs, coords[:,0], coords[:,2], x, m, npts, factor)
-fieldplot2(Eamp[:,1], coords[:,0], coords[:,2], x, m, npts, factor)
+# coords = get_points('meshXZ')
+# # Eamp = get_field(coords)
+# # Eabs = np.sqrt(Eamp[:, 0]**2 + Eamp[:, 1]**2 + Eamp[:, 2]**2)
+# Iprj = integrand(coords)
+# fieldplot2(Iprj, coords[:,0], coords[:,2], x, m, npts, factor)
+# #fieldplot2(Eabs, coords[:,0], coords[:,2], x, m, npts, factor)
+# #fieldplot2(Eamp[:,2], coords[:,0], coords[:,2], x, m, npts, factor)
+# plt.show()
+
+# coords = get_points('meshYZ')
+# Iprj = integrand(coords)
+# fieldplot2(Iprj, coords[:,1], coords[:,2], x, m, npts, factor)
+# plt.show()
+
+
+quad_n = 19
+D = []
+R = np.linspace(1, x[-1]*factor, num=150)
+for r in R:
+    print("r =",r)
+    coords = get_points('quad', r=r, quad_n=quad_n)
+    Iprj = integrand(coords)
+    Ptot = quadpy.sphere.integrate(integrand,
+                            [0.0, 0.0, 0.0], r,
+                            quadpy.sphere.Lebedev(str(quad_n))) / (4. * np.pi * r**2)
+    D.append(4.0*np.pi*np.max(Iprj)/Ptot)
+    # # print(Iprj)
+    # vIprj = np.zeros(coords.shape)
+    # for i in range(len(coords)):
+    #     vIprj[i]=coords[i]*Iprj[i]
+    # fig = plt.figure()
+    # ax = fig.add_subplot(111, projection='3d')
+    # ax.scatter(vIprj[:,0], vIprj[:,1], vIprj[:,2])
+    # ax.set_xlim(-np.max(vIprj),np.max(vIprj))
+    # ax.set_ylim(-np.max(vIprj),np.max(vIprj))
+    # ax.set_zlim(-np.max(vIprj),np.max(vIprj))
+    # plt.show()
+D = np.array(D)
+plt.plot(R,D)
+print(D)
 plt.show()
-    
-# for i in range(13):
-#     r = 10.0*(i+1)
-#     print(r)
-#     coords = get_points('quad', r=r, quad_n=77)
-#     Eamp = get_field(coords)
-#     prj = get_projections(coords, pol=1)
-#     Iprj = get_projected_intensity(prj, Eamp)
-#     vIprj = np.zeros(coords.shape)
-#     for i in range(len(coords)):
-#         vIprj[i]=coords[i]*Iprj[i]
-#     fig = plt.figure()
-#     ax = fig.add_subplot(111, projection='3d')
-#     ax.scatter(vIprj[:,0], vIprj[:,1], vIprj[:,2])
-#     #plt.show()
 
 
-#coords = get_points('quad', r=80, quad_n=5)
-npts = 6			# plot will be npts x npts
-coords = get_points('meshXZ')
-Eamp = get_field(coords)
-prj = get_projections(coords, pol=0)
-fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
-X = coords[:,0]
-Y = coords[:,1]
-Z = coords[:,2]
-scale = 15.
-U = prj[:, 0]*scale
-V = prj[:, 1]*scale
-W = prj[:, 2]*scale
+# #coords = get_points('quad', r=80, quad_n=5)
+# npts = 6			# plot will be npts x npts
+# coords = get_points('meshXZ')
+# Eamp = get_field(coords)
+# print(Eamp)
+# prj = get_projections(coords, pol=0)
+# Iprj = get_projected_intensity(prj, Eamp)
+# fig = plt.figure()
+# ax = fig.add_subplot(111, projection='3d')
+# X = coords[:,0]
+# Y = coords[:,1]
+# Z = coords[:,2]
+# scale = 15.
+# U = prj[:, 0]*scale
+# V = prj[:, 1]*scale
+# W = prj[:, 2]*scale
 # Emax = np.max(Eamp)/50
 # U = Eamp[:, 0]/Emax
 # V = Eamp[:, 1]/Emax
 # W = Eamp[:, 2]/Emax
-# plot projections with origin at coord, and coords from zero
-U, V, W, X, Y, Z = multi_hstack(( (U,X), (V,Y), (W,Z),
-                                 (X,X*0.), (Y,Y*0.), (Z,Z*0.)  ))
-ax.set_xlim(np.min(U),np.max(U))
-ax.set_ylim(np.min(V),np.max(V))
-ax.set_zlim(np.min(W),np.max(W))
-ax.quiver(X, Y, Z, U, V, W)
-plt.show()
+# # # plot projections with origin at coord, and coords from zero
+# # U, V, W, X, Y, Z = multi_hstack(( (U,X), (V,Y), (W,Z),
+# #                                  (X,X*0.), (Y,Y*0.), (Z,Z*0.)  ))
+# # ax.set_xlim(np.min(U),np.max(U))
+# # ax.set_ylim(np.min(V),np.max(V))
+# # ax.set_zlim(np.min(W),np.max(W))
+# ax.set_xlim(-core_r*factor, +core_r*factor)
+# ax.set_ylim(-core_r*factor, +core_r*factor)
+# ax.set_zlim(-core_r*factor, +core_r*factor)
+# ax.quiver(X, Y, Z, U, V, W)
+# plt.show()
