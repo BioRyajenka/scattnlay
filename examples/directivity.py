@@ -51,8 +51,8 @@ def get_field(coord):
                         2.0*np.pi*coord/WL,
                         pl=-1)
     Ec = E[0, :, :]
-    # Eamp = np.real(Ec)
-    Eamp = np.absolute(Ec)
+    Eamp = np.real(Ec)
+    #Eamp = np.absolute(Ec)
     return Eamp
 
 
