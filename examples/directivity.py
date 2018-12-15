@@ -51,7 +51,8 @@ def get_field(coord):
                         2.0*np.pi*coord/WL,
                         pl=-1)
     Ec = E[0, :, :]
-    Eamp = np.real(Ec)
+    # Eamp = np.real(Ec)
+    Eamp = np.absolute(Ec)
     return Eamp
 
 
@@ -165,12 +166,12 @@ def get_projections(coords, pol=0):
     for i in range(len(coords)):
         if isclose(coords[i][pol],0.) and isclose(coords[i][2],0.):
             # print("zero")
-            single = np.array([0.0, 0.0, 0.0])
+            single = np.array([0., 0., 0.])
             single[pol] = -1.
             prj[i] = single
         if isclose(angle_between(coords[i],prj[i]),pi/2) == False:        
             for j in range(2):
-                prj[i][0] *=(-1)**j
+                prj[i][pol] *=(-1)**j
                 prj[i][2] *=(-1)**(j+1)            
                 if isclose(angle_between(coords[i],prj[i]),pi/2) == True: break
         #Check the result
@@ -179,6 +180,14 @@ def get_projections(coords, pol=0):
     return prj
 
 
+@jit(#complex128(complex128[:], complex128[:]),
+     nopython=True, cache=True, nogil=True)
+def get_projected_intensity(prj, Eamp):
+    Iprj = np.zeros(len(Eamp))
+    for i in range(len(Eamp)):
+        Iprj[i] = (prj[i].dot(Eamp[i]))**2
+    return Iprj
+    
 #https://stackoverflow.com/a/13849249/4280547
 @jit(#complex128(complex128[:], complex128[:]),
      nopython=True, cache=True, nogil=True)
@@ -210,7 +219,10 @@ def angle_between(v1, v2):
 def visualization_test_of_projection_vectors(pol=0):
     """Plot projections vectors to visualy verify them """
     #coords = get_points('quad', r=core_r*4./5., quad_n=5)
-    coords = get_points('meshXZ')
+    coords = get_points('meshXY')
+#    coords[:,2]+=50.
+    #coords = get_points('meshXZ')
+#    coords = get_points('meshYZ')
     Eamp = get_field(coords)
     prj = get_projections(coords, pol=pol)
 
@@ -228,65 +240,63 @@ def visualization_test_of_projection_vectors(pol=0):
                                      (X,X*0.), (Y,Y*0.), (Z,Z*0.)  ))
 
     ax.quiver(X, Y, Z, U, V, W)
+    ax.set_xlim(np.min(U),np.max(U))
+    ax.set_ylim(np.min(V),np.max(V))
+    ax.set_zlim(np.min(W),np.max(W))
     plt.show()
 
 
 #visualization_test_of_projection_vectors(0)
 
-coords = get_points('meshXY')
+coords = get_points('meshXZ')
 Eamp = get_field(coords)
 Eabs = np.sqrt(Eamp[:, 0]**2 + Eamp[:, 1]**2 + Eamp[:, 2]**2)
 prj = get_projections(coords, pol=0)
-Eprj = np.zeros(len(Eamp))
-print(prj)
-for i in range(len(Eamp)):
-    Eprj[i] = np.abs(prj[i].dot(Eamp[i]))
-
-
-print(Eamp)
-fieldplot2(Eprj, coords[:,0], coords[:,1], x, m, npts, factor)
+Iprj = get_projected_intensity(prj, Eamp)
+#fieldplot2(Iprj, coords[:,0], coords[:,2], x, m, npts, factor)
+#fieldplot2(Eabs, coords[:,0], coords[:,2], x, m, npts, factor)
+fieldplot2(Eamp[:,1], coords[:,0], coords[:,2], x, m, npts, factor)
 plt.show()
+    
+# for i in range(13):
+#     r = 10.0*(i+1)
+#     print(r)
+#     coords = get_points('quad', r=r, quad_n=77)
+#     Eamp = get_field(coords)
+#     prj = get_projections(coords, pol=1)
+#     Iprj = get_projected_intensity(prj, Eamp)
+#     vIprj = np.zeros(coords.shape)
+#     for i in range(len(coords)):
+#         vIprj[i]=coords[i]*Iprj[i]
+#     fig = plt.figure()
+#     ax = fig.add_subplot(111, projection='3d')
+#     ax.scatter(vIprj[:,0], vIprj[:,1], vIprj[:,2])
+#     #plt.show()
 
 
-# coords = get_points('quad', r=core_r*4./5., quad_n=77)
-# Eamp = get_field(coords)
-# Eabs = np.sqrt(Eamp[:, 0]**2 + Eamp[:, 1]**2 + Eamp[:, 2]**2)
-# prj = get_projections(coords, pol=1)
-
-# Eprj = np.zeros(len(Eamp))
-# for i in range(len(Eamp)):
-#     Eprj[i] = np.abs(prj[i].dot(Eamp[i]))
-# print(Eprj/Eabs)
-
-# vEprj = np.zeros(coords.shape)
-# for i in range(len(coords)):
-#     vEprj[i]=coords[i]*Eprj[i]
-#     #vEprj[i]=coords[i]*Eabs[i]
-
-# fig = plt.figure()
-# ax = fig.add_subplot(111, projection='3d')
-# ax.scatter(vEprj[:,0], vEprj[:,1], vEprj[:,2])
-
-
-
-# #coords = get_points('quad', r=core_r*4./5., quad_n=5)
-# Eamp = get_field(coords)
-# prj = get_projections(coords, pol=0)
-# fig = plt.figure()
-# ax = fig.add_subplot(111, projection='3d')
-# X = coords[:,0]
-# Y = coords[:,1]
-# Z = coords[:,2]
-# scale = 15.
-# U = prj[:, 0]*scale
-# V = prj[:, 1]*scale
-# W = prj[:, 2]*scale
-# Emax = np.max(Eamp)/15
+#coords = get_points('quad', r=80, quad_n=5)
+npts = 6			# plot will be npts x npts
+coords = get_points('meshXZ')
+Eamp = get_field(coords)
+prj = get_projections(coords, pol=0)
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+X = coords[:,0]
+Y = coords[:,1]
+Z = coords[:,2]
+scale = 15.
+U = prj[:, 0]*scale
+V = prj[:, 1]*scale
+W = prj[:, 2]*scale
+# Emax = np.max(Eamp)/50
 # U = Eamp[:, 0]/Emax
 # V = Eamp[:, 1]/Emax
 # W = Eamp[:, 2]/Emax
-# # plot projections with origin at coord, and coords from zero
-# U, V, W, X, Y, Z = multi_hstack(( (U,X), (V,Y), (W,Z),
-#                                  (X,X*0.), (Y,Y*0.), (Z,Z*0.)  ))
-# ax.quiver(X, Y, Z, U, V, W)
-# plt.show()
+# plot projections with origin at coord, and coords from zero
+U, V, W, X, Y, Z = multi_hstack(( (U,X), (V,Y), (W,Z),
+                                 (X,X*0.), (Y,Y*0.), (Z,Z*0.)  ))
+ax.set_xlim(np.min(U),np.max(U))
+ax.set_ylim(np.min(V),np.max(V))
+ax.set_zlim(np.min(W),np.max(W))
+ax.quiver(X, Y, Z, U, V, W)
+plt.show()
