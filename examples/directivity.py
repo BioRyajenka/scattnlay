@@ -280,7 +280,7 @@ def integrand(coords):
 # plt.show()
 
 
-quad_n = 19
+quad_n = 31
 D = []
 R = np.linspace(1, x[-1]*factor, num=150)
 for r in R:
@@ -305,7 +305,8 @@ for r in R:
 D = np.array(D)
 plt.plot(R,D)
 print(D)
-plt.show()
+plt.savefig("nanoscale-directivity.pdf")
+#plt.show()
 
 
 # #coords = get_points('quad', r=80, quad_n=5)
