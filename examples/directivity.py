@@ -290,7 +290,7 @@ for r in R:
     Ptot = quadpy.sphere.integrate(integrand,
                             [0.0, 0.0, 0.0], r,
                             quadpy.sphere.Lebedev(str(quad_n))) / (4. * np.pi * r**2)
-    D.append(np.max(Iprj)/Ptot)
+    D.append(4.*np.pi*np.max(Iprj)/Ptot)
     # # print(Iprj)
     # vIprj = np.zeros(coords.shape)
     # for i in range(len(coords)):
