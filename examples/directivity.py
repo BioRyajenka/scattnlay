@@ -26,7 +26,7 @@ index = 4.6265+0.13845j	# refractive index
 #index = 4.639+0.078841j
 index = 21.4**0.5
 index = (21.4+1.2j)**0.5
-index = 1.001
+#index = 1.001
 
 npts = 150			# plot will be npts x npts
 factor=1.3					# area of plot
