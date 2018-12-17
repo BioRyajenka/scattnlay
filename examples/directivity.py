@@ -26,7 +26,6 @@ index = 4.6265+0.13845j	# refractive index
 #index = 4.639+0.078841j
 index = 21.4**0.5
 index = (21.4+1.2j)**0.5
-#index = 1.001
 
 npts = 150			# plot will be npts x npts
 factor=1.3					# area of plot
@@ -254,16 +253,38 @@ def visualization_test_of_projection_vectors(pol=0):
     ax.set_zlim(np.min(W),np.max(W))
     plt.show()
 
+def visualization_test_of_dipole_radiation():
+    global m
+    old_index = m
+    m = np.ones((1), dtype = np.complex128)
+    m[0] = 1.+1e-14
+    r=100
+    quad_n = 131
+    coords = get_points('onR',r)
+    Iprj = integrand(coords)
+    phi = np.linspace(-np.pi, np.pi, num=361)
+    plt.plot(phi,Iprj, lw=4., label="projected")
+    plt.plot(phi, np.sin(phi)**2, lw = 1., label="$sin^2(\phi)$")
+    plt.legend()
+    Ptot = quadpy.sphere.integrate(integrand,
+                            [0.0, 0.0, 0.0], r,
+                            quadpy.sphere.Lebedev(str(quad_n))) / (4. * np.pi * r**2)
+    D = 3./4.*(np.max(Iprj)/Ptot)
 
+    plt.title("D=%g"%D)
+    plt.show()
+    m = old_index
+    
 def integrand(coords):
     if coords.shape[0] == 3: coords = coords.T
-    # print(coords.shape)
     Eamp = get_field(coords)
     prj = get_projections(coords, pol=0)
     Iprj = get_projected_intensity(prj.astype(complex), Eamp)
     return Iprj
     
 #visualization_test_of_projection_vectors(0)
+visualization_test_of_dipole_radiation()
+
 
 coords = get_points('meshXZ')
 # Eamp = get_field(coords)
@@ -273,6 +294,8 @@ fieldplot2(Iprj, coords[:,0], coords[:,2], x, m, npts, factor)
 #fieldplot2(Eabs, coords[:,0], coords[:,2], x, m, npts, factor)
 #fieldplot2(Eamp[:,2], coords[:,0], coords[:,2], x, m, npts, factor)
 plt.show()
+
+
 
 coords = get_points('meshYZ')
 Iprj = integrand(coords)
@@ -290,7 +313,8 @@ for r in R:
     Ptot = quadpy.sphere.integrate(integrand,
                             [0.0, 0.0, 0.0], r,
                             quadpy.sphere.Lebedev(str(quad_n))) / (4. * np.pi * r**2)
-    D.append(4.*np.pi*np.max(Iprj)/Ptot)
+    #D.append(4.*np.pi*np.max(Iprj)/Ptot)
+    D.append(3./4.*np.max(Iprj)/Ptot)
     # # print(Iprj)
     # vIprj = np.zeros(coords.shape)
     # for i in range(len(coords)):
