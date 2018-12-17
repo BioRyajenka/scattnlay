@@ -24,7 +24,9 @@ core_r = 90.0			# partical radius
 index = 4.6265+0.13845j	# refractive index
 #index = sqrt(16)
 #index = 4.639+0.078841j
-#index = 21.4**0.5
+index = 21.4**0.5
+index = (21.4+1.2j)**0.5
+index = 1.001
 
 npts = 150			# plot will be npts x npts
 factor=1.3					# area of plot
@@ -51,18 +53,8 @@ def get_field(coord):
                         2.0*np.pi*coord/WL,
                         pl=-1)
     Ec = E[0, :, :]
-    Eamp = np.real(Ec)
-
-    #Eamp = np.absolute(Ec)
     
-    Ephi = -np.angle(Ec[:,0])
-    Ephi = np.array([Ephi, Ephi, Ephi]).T
-    Eamp = np.real(Ec*(np.cos(Ephi)+np.sin(Ephi)*1j))
-    # Eamp[coord[:,0]<0 , 2] *= -1  # Hack to get symmetric projections
-    
-    # if np.max(Eamp[:,1])<1e-15: Eamp[:,1]*=0.
-        
-    return Eamp
+    return Ec
 
 
 def get_points(selector, r=1., quad_n=19):
@@ -72,6 +64,7 @@ def get_points(selector, r=1., quad_n=19):
         selector (string): type of distribution
                            "quad" - Lebedev quadrature points
                            "meshXY", "meshXZ", "meshYZ" - uniform mesh
+                           "onR" - points on circle in XZ plane
                 r (float): "quad" only. A scale raduis.
              quad_n (int): "quad" only. Quadrature polynomial order.
                            Some of allowed values are 5, 13, 19, 131
@@ -83,7 +76,14 @@ def get_points(selector, r=1., quad_n=19):
     if selector=="quad":
         coord = quadpy.sphere.Lebedev(str(quad_n)).points * r
         return coord
-    
+    if selector=="onR":
+        phi = np.linspace(-np.pi, np.pi, num=361)
+        coordX = r*np.cos(phi)
+        coordY = phi*0.
+        coordZ = r*np.sin(phi)
+        return np.vstack((coordX, coordY, coordZ)).transpose()
+
+
     scan = np.linspace(-factor*x[-1], factor*x[-1], npts)
     zero = np.zeros(npts*npts, dtype = np.float64)
 
@@ -194,7 +194,7 @@ def get_projections(coords, pol=0):
 def get_projected_intensity(prj, Eamp):
     Iprj = np.zeros(len(Eamp))
     for i in range(len(Eamp)):
-        Iprj[i] = (prj[i].dot(Eamp[i]))**2
+        Iprj[i] = np.abs(prj[i].dot(Eamp[i]))**2
     return Iprj
     
 #https://stackoverflow.com/a/13849249/4280547
@@ -260,24 +260,24 @@ def integrand(coords):
     # print(coords.shape)
     Eamp = get_field(coords)
     prj = get_projections(coords, pol=0)
-    Iprj = get_projected_intensity(prj, Eamp)
+    Iprj = get_projected_intensity(prj.astype(complex), Eamp)
     return Iprj
     
 #visualization_test_of_projection_vectors(0)
 
-# coords = get_points('meshXZ')
-# # Eamp = get_field(coords)
-# # Eabs = np.sqrt(Eamp[:, 0]**2 + Eamp[:, 1]**2 + Eamp[:, 2]**2)
-# Iprj = integrand(coords)
-# fieldplot2(Iprj, coords[:,0], coords[:,2], x, m, npts, factor)
-# #fieldplot2(Eabs, coords[:,0], coords[:,2], x, m, npts, factor)
-# #fieldplot2(Eamp[:,2], coords[:,0], coords[:,2], x, m, npts, factor)
-# plt.show()
+coords = get_points('meshXZ')
+# Eamp = get_field(coords)
+# Eabs = np.sqrt(Eamp[:, 0]**2 + Eamp[:, 1]**2 + Eamp[:, 2]**2)
+Iprj = integrand(coords)
+fieldplot2(Iprj, coords[:,0], coords[:,2], x, m, npts, factor)
+#fieldplot2(Eabs, coords[:,0], coords[:,2], x, m, npts, factor)
+#fieldplot2(Eamp[:,2], coords[:,0], coords[:,2], x, m, npts, factor)
+plt.show()
 
-# coords = get_points('meshYZ')
-# Iprj = integrand(coords)
-# fieldplot2(Iprj, coords[:,1], coords[:,2], x, m, npts, factor)
-# plt.show()
+coords = get_points('meshYZ')
+Iprj = integrand(coords)
+fieldplot2(Iprj, coords[:,1], coords[:,2], x, m, npts, factor)
+plt.show()
 
 
 quad_n = 31
@@ -290,7 +290,7 @@ for r in R:
     Ptot = quadpy.sphere.integrate(integrand,
                             [0.0, 0.0, 0.0], r,
                             quadpy.sphere.Lebedev(str(quad_n))) / (4. * np.pi * r**2)
-    D.append(4.0*np.pi*np.max(Iprj)/Ptot)
+    D.append(np.max(Iprj)/Ptot)
     # # print(Iprj)
     # vIprj = np.zeros(coords.shape)
     # for i in range(len(coords)):
@@ -305,7 +305,7 @@ for r in R:
 D = np.array(D)
 plt.plot(R,D)
 print(D)
-plt.savefig("nanoscale-directivity.pdf")
+plt.savefig("nanoscale-directivity-%s.pdf"%{str(index**2)})
 #plt.show()
 
 
