@@ -45,7 +45,7 @@ def get_field(coord):
                              of points to evaluate the field.
 
     Returns:
-        Amplitude vectors of electric field.
+        Complex vectors of electric field.
     """
     _, E, _ = fieldnlay(np.array([2.0*np.pi*x/WL]),
                         np.array([m]),
@@ -193,7 +193,7 @@ def get_projections(coords, pol=0):
 def get_projected_intensity(prj, Eamp):
     Iprj = np.zeros(len(Eamp))
     for i in range(len(Eamp)):
-        Iprj[i] = np.abs(prj[i].dot(Eamp[i]))**2
+        Iprj[i] = np.abs( prj[i].dot(Eamp[i]) )**2
     return Iprj
     
 #https://stackoverflow.com/a/13849249/4280547
@@ -254,6 +254,7 @@ def visualization_test_of_projection_vectors(pol=0):
     plt.show()
 
 def visualization_test_of_dipole_radiation():
+    """Free (almost) space should not change the radiation pattern of the dipole"""
     global m
     old_index = m
     m = np.ones((1), dtype = np.complex128)
@@ -269,6 +270,7 @@ def visualization_test_of_dipole_radiation():
     Ptot = quadpy.sphere.integrate(integrand,
                             [0.0, 0.0, 0.0], r,
                             quadpy.sphere.Lebedev(str(quad_n))) / (4. * np.pi * r**2)
+    # 3/4 multiplier is to get the correct value of directivity for a dipole
     D = 3./4.*(np.max(Iprj)/Ptot)
 
     plt.title("D=%g"%D)
@@ -276,6 +278,7 @@ def visualization_test_of_dipole_radiation():
     m = old_index
     
 def integrand(coords):
+    """Evaluate radiation intensity"""
     if coords.shape[0] == 3: coords = coords.T
     Eamp = get_field(coords)
     prj = get_projections(coords, pol=0)
@@ -285,7 +288,6 @@ def integrand(coords):
 #visualization_test_of_projection_vectors(0)
 visualization_test_of_dipole_radiation()
 
-
 coords = get_points('meshXZ')
 # Eamp = get_field(coords)
 # Eabs = np.sqrt(Eamp[:, 0]**2 + Eamp[:, 1]**2 + Eamp[:, 2]**2)
@@ -294,8 +296,6 @@ fieldplot2(Iprj, coords[:,0], coords[:,2], x, m, npts, factor)
 #fieldplot2(Eabs, coords[:,0], coords[:,2], x, m, npts, factor)
 #fieldplot2(Eamp[:,2], coords[:,0], coords[:,2], x, m, npts, factor)
 plt.show()
-
-
 
 coords = get_points('meshYZ')
 Iprj = integrand(coords)
