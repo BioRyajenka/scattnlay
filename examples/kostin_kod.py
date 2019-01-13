@@ -37,7 +37,7 @@ nm = 1.0						# refractive index of host media
 m = np.ones((1), dtype = np.complex128)
 m[0] = index/nm
 
-def get_field(coord):
+def get_field(coord, x=x, m=m):
     """Get amplitude of electric near-field.
 
     Args:
@@ -210,10 +210,10 @@ def angle_between(v1, v2):
     if dot > 1: dot = 1
     return np.arccos(dot)
     
-def integrand(coords):
+def integrand(coords, x=x, m=m):
     """Evaluate radiation intensity"""
     if coords.shape[0] == 3: coords = coords.T
-    Eamp = get_field(coords)
+    Eamp = get_field(coords, x=x, m=m)
     prj = get_projections(coords, pol=0)#+get_projections(coords, pol=1)
     Iprj = get_projected_intensity(prj.astype(complex), Eamp)
     return Iprj
