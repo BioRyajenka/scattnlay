@@ -170,8 +170,11 @@ def get_projections(coords, pol=0):
                 prj[i][2] *=(-1)**(j+1)
                 if isclose(angle_between(coords[i],prj[i]),pi/2) == True: break
         #Check the result
-        if not isclose(angle_between(coords[i],prj[i]),pi/2):
+        test_angle = angle_between(coords[i],prj[i])
+        if not isclose(test_angle, pi/2):
             print("!!!!!! Projection problem !!!!!!!")
+            print(test_angle)
+            print(coords[i], prj[i])
     return prj
 
 
